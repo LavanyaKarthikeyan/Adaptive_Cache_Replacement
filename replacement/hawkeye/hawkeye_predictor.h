@@ -36,35 +36,68 @@ uint64_t CRC( uint64_t _blockAddress )
 
 class HAWKEYE_PC_PREDICTOR
 {
-    map<uint64_t, short unsigned int > SHCT;
+    map<uint64_t, pair<short unsigned int, short unsigned int> > SHCT;
 
        public:
 
     void increment (uint64_t pc)
     {
         uint64_t signature = CRC(pc) % SHCT_SIZE;
-        if(SHCT.find(signature) == SHCT.end())
-            SHCT[signature] = (1+MAX_SHCT)/2;
+        if(SHCT.find(signature) == SHCT.end()){
+            SHCT[signature].first = 0;
+            SHCT[signature].second = 0;
+        }
 
-        SHCT[signature] = (SHCT[signature] < MAX_SHCT) ? (SHCT[signature]+1) : MAX_SHCT;
+        SHCT[signature].second = (SHCT[signature].first < MAX_SHCT) ? SHCT[signature].second : SHCT[signature].second >> 1;
+        SHCT[signature].first = (SHCT[signature].first < MAX_SHCT) ? (SHCT[signature].first+1) : (SHCT[signature].first >> 1)+1;
+        
+         
 
     }
 
     void decrement (uint64_t pc)
     {
         uint64_t signature = CRC(pc) % SHCT_SIZE;
-        if(SHCT.find(signature) == SHCT.end())
-            SHCT[signature] = (1+MAX_SHCT)/2;
-        if(SHCT[signature] != 0)
-            SHCT[signature] = SHCT[signature]-1;
+        if(SHCT.find(signature) == SHCT.end()){
+            SHCT[signature].first = 0;
+            SHCT[signature].second = 0;
+        }
+        // if(SHCT[signature] != 0)
+        //     SHCT[signature] = SHCT[signature]-1;
+        SHCT[signature].first = (SHCT[signature].second < MAX_SHCT) ? SHCT[signature].first  : SHCT[signature].first >> 1;
+        SHCT[signature].second = (SHCT[signature].second < MAX_SHCT) ? (SHCT[signature].second+1) : (SHCT[signature].second >> 1)+1;
     }
 
     bool get_prediction (uint64_t pc)
     {
         uint64_t signature = CRC(pc) % SHCT_SIZE;
-        if(SHCT.find(signature) != SHCT.end() && SHCT[signature] < ((MAX_SHCT+1)/2))
+        if(SHCT.find(signature) != SHCT.end() && SHCT[signature].first < SHCT[signature].second)
             return false;
         return true;
+    }
+
+    short unsigned int get_reuse (uint64_t pc)
+    {
+        uint64_t signature = CRC(pc) % SHCT_SIZE;
+        if(SHCT.find(signature) != SHCT.end())
+            return SHCT[signature].first;
+        return 0;
+    }
+
+    short unsigned int get_noreuse (uint64_t pc)
+    {
+        uint64_t signature = CRC(pc) % SHCT_SIZE;
+        if(SHCT.find(signature) != SHCT.end())
+            return SHCT[signature].second;
+        return 0;
+    }
+
+    short unsigned int get_confidence (uint64_t pc)
+    {
+        uint64_t signature = CRC(pc) % SHCT_SIZE;
+        if(SHCT.find(signature) != SHCT.end())
+            return ((SHCT[signature].second - SHCT[signature].first) < 0) ? (-1*(SHCT[signature].second - SHCT[signature].first)) : ((SHCT[signature].second - SHCT[signature].first));
+        return -1;
     }
 };
 

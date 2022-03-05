@@ -7,7 +7,7 @@
 //
 #include "../inc/champsim_crc2.h"
 
-#define NUM_CORE 4
+#define NUM_CORE 1
 #define MAX_LLC_SETS 8192
 #define LLC_WAYS 16
 
